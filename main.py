@@ -86,9 +86,12 @@ import time
 import pygame
 import sys
 import os
+from PIL import Image
+
 
 # Variables Section
 
+# Colours
 WHITE = (255, 255, 255)
 BLACK = (0,   0,   0)
 RED = (255,   0,   0)
@@ -98,44 +101,142 @@ VIRIDIAN_GREEN = (14, 149, 148)
 ORANGE_SODA = (242, 84, 45)
 WHEAT = (245, 223, 187)
 BGCOLOUR = (100, 100, 255)
-
+ALPHA = (157, 142, 135)
+AlPHA2 = (3, 9, 18)
+direction = 0
+# Screen dimensions
 SCREEN_WIDTH = 960
 SCREEN_HEIGHT = 720
+
+# frames
 fps = 60
-ani = 4
+ani = 4 # for animating
 main = True
+world = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+
 # Objects Section
 
-# Setup Section
-clock = pygame.time.Clock
-pygame.init()
-world = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
-background = pygame.image.load("./images/bachground.jpg")
-backgroup_parims = world.get_rect()
+class Player(pygame.sprite.Sprite):
+    """
+    To spawn the player
+    """
 
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.movex = 0
+        self.movey = 0
+        self.frame = 0
+        self.images = []
+        # load all images of walk cycle
+        for i in range(1, 5):
+            # load and scale the images
+            img = pygame.image.load(f"./images/hero{i}.png").convert()
+            img = pygame.transform.scale(img, (11 * 5, 15 * 5))
+            # Get rid of coloured box around the image
+            img.convert_alpha()
+            img.set_colorkey((0, 0, 0))
+            self.images.append(img)
+            # Set idle stance
+            self.image = self.images[0]
+            self.rect = self.image.get_rect()
+
+
+    def control(self, x, y):
+        """
+        To control player movement
+        :param x: x direction
+        :param y: y direction
+        """
+        self.movex += x
+        self.movey += y
+
+    def update(self):
+        """
+        :return:
+        """
+        self.rect.x = self.rect.x + self.movex
+        self.rect.y = self.rect.y + self.movey
+
+        if self.movex < 0:
+            self.frame += 1
+            if self.frame > 3 * ani:
+                self.frame = 0
+            self.image = pygame.transform.flip(self.images[self.frame // ani], True, False)
+
+        if self.movex > 0:
+            self.frame += 1
+            if self.frame > 3 * ani:
+                self.frame = 0
+            self.image = self.images[self.frame//ani]
+
+class Enemy(pygame.sprite.Sprite):
+    """
+    Spawn Enemy
+    """
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = []
+        for i in range(1, 6):
+            # load and scale the images
+            img = pygame.image.load(f"./images/orc{i}.png").convert()
+            img = pygame.transform.scale(img, (11 * 5, 15 * 5))
+            img.convert_alpha()
+            img.set_colorkey(AlPHA2)
+            self.images.append(img)
+            # Set idle stance
+            self.image = self.images[0]
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y
+# Setup Section
+clock = pygame.time.Clock()
+pygame.init()
+background = pygame.image.load("./images/bachground.jpg")
+background_parims = world.get_rect()
+player = Player()
+player.rect.x = 0
+player.rect.y = 400
+player_list = pygame.sprite.Group()
+player_list.add(player)
+steps = 7
+enemy = Enemy(300, 400)
+enemy_list = pygame.sprite.Group()
+enemy_list.add(enemy)
 # Main Loop Section
 while main:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
-            try:
-                sys.exit()
-            finally:
-                main = False
 
+        # Press Q to Quit game
         if event.type == pygame.KEYDOWN:
             if event.key == ord('q'):
                 pygame.quit()
-            try:
-                sys.exit()
-            finally:
                 main = False
 
-    # update background
-    world.blit(background, backgroup_parims)
+        # Player movement
+            if event.key == pygame.K_a:
+                player.control(-steps, 0)
+            if event.key == pygame.K_d:
+                player.control(steps, 0)
+            if event.key == pygame.K_w:
+                player.jump()
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_a:
+                player.control(steps, 0)
+            if event.key == pygame.K_d:
+                player.control(-steps, 0)
 
+
+    # update background
+    world.blit(background, background_parims)
+
+    # draw player into the world
+    player.update()
+    player_list.draw(world)
+    enemy_list.draw(world)
     # Update the screen
     pygame.display.flip()
 
     # ----------- CLOCK TICK
-clock.tick(fps)
+    clock.tick(fps)
