@@ -126,6 +126,7 @@ class Player(pygame.sprite.Sprite):
         self.movex = 0
         self.movey = 0
         self.frame = 0
+        self.hp = 10
         self.images = []
         # load all images of walk cycle
         for i in range(1, 5):
@@ -134,7 +135,7 @@ class Player(pygame.sprite.Sprite):
             img = pygame.transform.scale(img, (11 * 5, 15 * 5))
             # Get rid of coloured box around the image
             img.convert_alpha()
-            img.set_colorkey((0, 0, 0))
+            img.set_colorkey(ALPHA)
             self.images.append(img)
             # Set idle stance
             self.image = self.images[0]
@@ -168,26 +169,63 @@ class Player(pygame.sprite.Sprite):
             if self.frame > 3 * ani:
                 self.frame = 0
             self.image = self.images[self.frame//ani]
+        hit_list = pygame.sprite.spritecollide(self, enemy_list, False)
+        for enemy in hit_list:
+            self.hp -= 1
+            print(self.hp)
 
 class Enemy(pygame.sprite.Sprite):
     """
     Spawn Enemy
     """
-    def __init__(self, x, y):
+    def __init__(self, x, y, player):
         pygame.sprite.Sprite.__init__(self)
+        self.player = player
+        self.frame = 0
         self.images = []
         for i in range(1, 6):
             # load and scale the images
             img = pygame.image.load(f"./images/orc{i}.png").convert()
             img = pygame.transform.scale(img, (11 * 5, 15 * 5))
             img.convert_alpha()
-            img.set_colorkey(AlPHA2)
+            img.set_colorkey((0, 0 ,0))
             self.images.append(img)
             # Set idle stance
             self.image = self.images[0]
             self.rect = self.image.get_rect()
             self.rect.x = x
             self.rect.y = y
+        self.counter = 0
+    def move(self, Player):
+        """
+        movement
+        :return:
+        """
+
+
+        # speed = 5
+        # if self.rect.x > Player.movex:
+        #     self.rect.x -= speed
+        # elif self.rect.x < Player.movex:
+        #     self.rect.x += speed
+        #     # Movement along y direction
+        # if self.rect.y < Player.movey:
+        #     self.rect.y += speed
+        # elif self.rect.y > Player.movey:
+        #     self.rect.y -= speed
+        #
+        # self.counter += 1
+
+    def update(self):
+        if self.player.rect.x > self.rect.x:
+            self.rect.x += 5
+        if self.player.rect.x < self.rect.x:
+            self.rect.x -= 5
+        if self.player.rect.y > self.rect.y:
+            self.rect.y += 5
+        if self.player.rect.y < self.rect.y:
+            self.rect.y -= 5
+
 # Setup Section
 clock = pygame.time.Clock()
 pygame.init()
@@ -199,7 +237,8 @@ player.rect.y = 400
 player_list = pygame.sprite.Group()
 player_list.add(player)
 steps = 7
-enemy = Enemy(300, 400)
+
+enemy = Enemy(300, 400, player)
 enemy_list = pygame.sprite.Group()
 enemy_list.add(enemy)
 # Main Loop Section
@@ -235,6 +274,7 @@ while main:
     player.update()
     player_list.draw(world)
     enemy_list.draw(world)
+    enemy.update()
     # Update the screen
     pygame.display.flip()
 
