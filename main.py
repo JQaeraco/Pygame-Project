@@ -174,6 +174,14 @@ class Player(pygame.sprite.Sprite):
             self.hp -= 1
             print(self.hp)
 
+
+    def gravity(self):
+        self.movey += 0.5
+
+        if self.rect.y > SCREEN_HEIGHT and self.movey >= 0:
+            self.movey = 0
+            self.rect.y = SCREEN_HEIGHT-ty
+
 class Enemy(pygame.sprite.Sprite):
     """
     Spawn Enemy
@@ -196,7 +204,7 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x = x
             self.rect.y = y
         self.counter = 0
-    def move(self, Player):
+    def move(self   ):
         """
         movement
         :return:
@@ -225,6 +233,24 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.y += 5
         if self.player.rect.y < self.rect.y:
             self.rect.y -= 5
+
+
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, imgw, imgh, img):
+        """Params:
+        x: x location
+        y: y location
+        imgw: image width
+        imgh: image height
+        img: image file"""
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("./images/tile_aqua.png")
+        self.image.convert_alpha()
+        self.image.set_colorkey(ALPHA)
+        self.rect = self.image.get_rect()
+        self.rect.y = yloc
+        self.rect.x = xloc
+
 
 # Setup Section
 clock = pygame.time.Clock()
@@ -258,7 +284,7 @@ while main:
                 player.control(-steps, 0)
             if event.key == pygame.K_d:
                 player.control(steps, 0)
-            if event.key == pygame.K_w:
+            if event.key == pygame.K_SPACE:
                 player.jump()
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
@@ -271,6 +297,7 @@ while main:
     world.blit(background, background_parims)
 
     # draw player into the world
+    player.gravity()
     player.update()
     player_list.draw(world)
     enemy_list.draw(world)
