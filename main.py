@@ -127,6 +127,8 @@ class Player(pygame.sprite.Sprite):
         self.movey = 0
         self.frame = 0
         self.hp = 10
+        self.is_jumping = True
+        self.is_falling = False
         self.images = []
         # load all images of walk cycle
         for i in range(1, 5):
@@ -141,6 +143,9 @@ class Player(pygame.sprite.Sprite):
             self.image = self.images[0]
             self.rect = self.image.get_rect()
 
+    def gravity(self):
+        if self.is_jumping:
+            self.movey += 3.2
 
     def control(self, x, y):
         """
@@ -149,38 +154,70 @@ class Player(pygame.sprite.Sprite):
         :param y: y direction
         """
         self.movex += x
-        self.movey += y
+
+    def jump(self):
+        if self.is_jumping is False:
+            self.is_falling = False
+            self.is_jumping = True
 
     def update(self):
         """
         :return:
         """
-        self.rect.x = self.rect.x + self.movex
-        self.rect.y = self.rect.y + self.movey
-
         if self.movex < 0:
+            self.is_jumping = True
             self.frame += 1
             if self.frame > 3 * ani:
                 self.frame = 0
             self.image = pygame.transform.flip(self.images[self.frame // ani], True, False)
 
         if self.movex > 0:
+            self.is_jumping = True
             self.frame += 1
             if self.frame > 3 * ani:
                 self.frame = 0
             self.image = self.images[self.frame//ani]
-        hit_list = pygame.sprite.spritecollide(self, enemy_list, False)
-        for enemy in hit_list:
+        enemy_hit_list = pygame.sprite.spritecollide(self, enemy_list, False)
+        for enemy in enemy_hit_list:
             self.hp -= 1
             print(self.hp)
 
-
-    def gravity(self):
-        self.movey += 0.5
-
-        if self.rect.y > SCREEN_HEIGHT and self.movey >= 0:
+        ground_hit_list = pygame.sprite.spritecollide(self, ground_list, False)
+        for g in ground_hit_list:
             self.movey = 0
-            self.rect.y = SCREEN_HEIGHT-ty
+            self.rect.bottom = g.rect.top
+            self.is_jumping = False  # stop jumping
+
+        # fall off the world
+        if self.rect.y > SCREEN_HEIGHT:
+            self.hp -= 1
+            print(self.hp)
+            self.rect.x = tile_x
+            self.rect.y = tile_y
+
+        plat_hit_list = pygame.sprite.spritecollide(self, plat_list, False)
+        for p in plat_hit_list:
+            self.is_jumping = False  # stop jumping
+            self.movey = 0
+            # approach from below
+            if self.rect.bottom <= p.rect.bottom:
+                self.rect.bottom = p.rect.top
+            else:
+                self.movey += 3.2
+
+        if self.is_jumping and self.is_falling is False:
+            self.is_falling = True
+            self.movey -= 30
+
+        self.rect.x += self.movex
+        self.rect.y += self.movey
+
+
+
+
+
+
+
 
 class Enemy(pygame.sprite.Sprite):
     """
@@ -204,35 +241,17 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x = x
             self.rect.y = y
         self.counter = 0
-    def move(self   ):
-        """
-        movement
-        :return:
-        """
-
-
-        # speed = 5
-        # if self.rect.x > Player.movex:
-        #     self.rect.x -= speed
-        # elif self.rect.x < Player.movex:
-        #     self.rect.x += speed
-        #     # Movement along y direction
-        # if self.rect.y < Player.movey:
-        #     self.rect.y += speed
-        # elif self.rect.y > Player.movey:
-        #     self.rect.y -= speed
-        #
-        # self.counter += 1
 
     def update(self):
+        speed = 3
         if self.player.rect.x > self.rect.x:
-            self.rect.x += 5
+            self.rect.x += speed
         if self.player.rect.x < self.rect.x:
-            self.rect.x -= 5
+            self.rect.x -= speed
         if self.player.rect.y > self.rect.y:
-            self.rect.y += 5
+            self.rect.y += speed
         if self.player.rect.y < self.rect.y:
-            self.rect.y -= 5
+            self.rect.y -= speed
 
 
 class Platform(pygame.sprite.Sprite):
@@ -248,15 +267,45 @@ class Platform(pygame.sprite.Sprite):
         self.image.convert_alpha()
         self.image.set_colorkey(ALPHA)
         self.rect = self.image.get_rect()
-        self.rect.y = yloc
-        self.rect.x = xloc
+        self.rect.y = y
+        self.rect.x = x
 
+    def ground(gloc,tile_x,tile_y):
+        ground_list = pygame.sprite.Group()
+        i=0
+
+        while i < len(gloc):
+            ground = Platform(gloc[i], SCREEN_HEIGHT - tile_y, tile_x, tile_y, './images/tile_aqua.png')
+            ground_list.add(ground)
+            i=i+1
+
+        return ground_list
+
+    def platform(tx, ty):
+        plat_list = pygame.sprite.Group()
+        ploc = []
+        i = 0
+
+        ploc.append((200, SCREEN_HEIGHT - ty - 150, 3))
+        ploc.append((300, SCREEN_HEIGHT - ty - 300, 3))
+        ploc.append((500, SCREEN_HEIGHT - ty - 150, 4))
+        while i < len(ploc):
+            j = 0
+            while j <= ploc[i][2]:
+                plat = Platform((ploc[i][0] + (j * tx)), ploc[i][1], tx, ty, './images/tile_aqua.png')
+                plat_list.add(plat)
+                j = j + 1
+            print('run' + str(i) + str(ploc[i]))
+            i = i + 1
+
+        return plat_list
 
 # Setup Section
 clock = pygame.time.Clock()
 pygame.init()
 background = pygame.image.load("./images/bachground.jpg")
 background_parims = world.get_rect()
+
 player = Player()
 player.rect.x = 0
 player.rect.y = 400
@@ -267,6 +316,18 @@ steps = 7
 enemy = Enemy(300, 400, player)
 enemy_list = pygame.sprite.Group()
 enemy_list.add(enemy)
+
+gloc = []
+tile_x = 64
+tile_y = 64
+
+i = 0
+while i <= (SCREEN_WIDTH / tile_x)+tile_x:
+    gloc.append(i * tile_x)
+    i = i + 1
+
+ground_list = Platform.ground(gloc, tile_x, tile_y )
+plat_list = Platform.platform(tile_x, tile_y)
 # Main Loop Section
 while main:
     for event in pygame.event.get():
@@ -297,10 +358,12 @@ while main:
     world.blit(background, background_parims)
 
     # draw player into the world
-    player.gravity()
     player.update()
+    player.gravity()
     player_list.draw(world)
     enemy_list.draw(world)
+    ground_list.draw(world)
+    plat_list.draw(world)
     enemy.update()
     # Update the screen
     pygame.display.flip()
