@@ -288,7 +288,7 @@ class Platform(pygame.sprite.Sprite):
 
         ploc.append((200, SCREEN_HEIGHT - ty - 150, 3))
         ploc.append((300, SCREEN_HEIGHT - ty - 300, 3))
-        ploc.append((500, SCREEN_HEIGHT - ty - 150, 4))
+        ploc.append((550, SCREEN_HEIGHT - ty - 150, 3))
         while i < len(ploc):
             j = 0
             while j <= ploc[i][2]:
