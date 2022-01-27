@@ -326,9 +326,9 @@ while main:
     player.update()
     player.gravity()
     player_list.draw(world)
-    enemy_list.draw(world)
     ground_list.draw(world)
     plat_list.draw(world)
+    enemy_list.draw(world)
     enemy.update()
 
     # Draw health bar
