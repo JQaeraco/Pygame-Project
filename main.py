@@ -45,7 +45,7 @@ class Player(pygame.sprite.Sprite):
         self.movex = 0
         self.movey = 0
         self.frame = 0
-        self.hp = 200
+        self.hp = 40
         self.is_jumping = True
         self.is_falling = False
         self.images = []
@@ -90,7 +90,7 @@ class Player(pygame.sprite.Sprite):
 
     def hp_remaining(self) -> int:
         """Return the percent of health remaining"""
-        return self.hp / 200
+        return self.hp / 40
 
     def update(self):
         # implement animation for running
