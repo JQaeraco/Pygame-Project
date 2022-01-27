@@ -3,7 +3,10 @@
 # 2022
 
 # Game Idea: Stay away from angry ogre for as long as possible
-
+# Note: jumping is kind of unconventional, you have to release movement keys in order to jump
+# A to move right
+# D to move left
+# Space for jump (release A and D)
 
 import pygame
 
