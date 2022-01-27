@@ -84,10 +84,6 @@
 import random
 import time
 import pygame
-import sys
-import os
-from PIL import Image
-
 
 # Variables Section
 
@@ -110,9 +106,12 @@ SCREEN_HEIGHT = 720
 
 # frames
 fps = 60
+fps_count = 0
 ani = 4 # for animating
 main = True
 world = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+
+
 
 # Objects Section
 
@@ -126,7 +125,7 @@ class Player(pygame.sprite.Sprite):
         self.movex = 0
         self.movey = 0
         self.frame = 0
-        self.hp = 10
+        self.hp = 200
         self.is_jumping = True
         self.is_falling = False
         self.images = []
@@ -159,6 +158,10 @@ class Player(pygame.sprite.Sprite):
         if self.is_jumping is False:
             self.is_falling = False
             self.is_jumping = True
+
+    def hp_remaining(self) -> int:
+        """Return the percent of health remaining"""
+        return self.hp / 200
 
     def update(self):
         """
@@ -212,6 +215,14 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += self.movex
         self.rect.y += self.movey
 
+        # If player is too far to the left
+        if self.rect.left < 0:
+            self.rect.x = 0
+
+        # If player is too far to the right
+        if self.rect.right > SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+
 
 
 
@@ -244,14 +255,14 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         speed = 3
-        if self.player.rect.x > self.rect.x:
+        if self.player.rect.x + 20> self.rect.x:
             self.rect.x += speed
-        if self.player.rect.x < self.rect.x:
+        if self.player.rect.x -20 < self.rect.x:
             self.rect.x -= speed
-        if self.player.rect.y > self.rect.y:
-            self.rect.y += speed
-        if self.player.rect.y < self.rect.y:
-            self.rect.y -= speed
+        if self.player.rect.y + 20 > self.rect.y:
+            self.rect.y += speed - 1
+        if self.player.rect.y - 20 < self.rect.y:
+            self.rect.y -= speed - 1
 
 
 class Platform(pygame.sprite.Sprite):
@@ -300,6 +311,8 @@ class Platform(pygame.sprite.Sprite):
 
         return plat_list
 
+
+
 # Setup Section
 clock = pygame.time.Clock()
 pygame.init()
@@ -320,6 +333,14 @@ enemy_list.add(enemy)
 gloc = []
 tile_x = 64
 tile_y = 64
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+time_score_seconds = 0
+
+with open("./data/highscore.txt") as f:
+    high_score = int(f.readline().strip())
+
+font = pygame.font.SysFont("Arial", 25)
 
 i = 0
 while i <= (SCREEN_WIDTH / tile_x)+tile_x:
@@ -353,6 +374,14 @@ while main:
             if event.key == pygame.K_d:
                 player.control(-steps, 0)
 
+    if player.hp_remaining() <= 0:
+        main = False
+
+    time_score_seconds = fps_count // fps
+    time_score_minutes = time_score_seconds // 60
+    seconds = time_score_seconds % 60
+
+    output_string = "{0:02}:{1:02}".format(time_score_minutes, seconds)
 
     # update background
     world.blit(background, background_parims)
@@ -365,8 +394,33 @@ while main:
     ground_list.draw(world)
     plat_list.draw(world)
     enemy.update()
+    pygame.draw.rect(screen, BLUE, [580, 5, 215, 20])
+    # Draw the foreground rectangle which is the remaining health
+    life_remaining = 215 - int(215 * player.hp_remaining())
+    pygame.draw.rect(screen, RED, [580, 5, life_remaining, 20])
+
+    screen.blit(
+        font.render(f"Current Time: {output_string}", True, WHITE),
+        (5, 5)
+    )
+    screen.blit(
+        font.render(f"High Score (seconds): {high_score}", True, WHITE),
+        (5, 70)
+    )
+    screen.blit(
+        font.render(f"Current time (seconds): {time_score_seconds}", True, WHITE),
+        (5, 40)
+    )
+    fps_count += 1
     # Update the screen
     pygame.display.flip()
 
     # ----------- CLOCK TICK
     clock.tick(fps)
+
+    with open("./data/highscore.txt", "w") as f:
+        if time_score_seconds > high_score:
+            f.write(str(time_score_seconds))
+        else:
+            f.write(str(high_score))
+
